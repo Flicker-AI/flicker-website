@@ -63,16 +63,11 @@ const SAMPLE_COMPANIES = [
 ];
 
 const MAX_STACK = 3;
-const STACK_GAP = 0; // ระยะเลื่อนลงของการ์ดชั้นล่าง (มิติ)
+const STACK_GAP = 12; // ระยะเลื่อนลงของการ์ดชั้นล่าง (มิติ)
 const PEEK_TOP = 18; // การโผล่ขอบบนของการ์ดชั้นหลัง
 const BASE_SCALE = 0.94; // ขนาดการ์ดใบบนสุด (ให้เล็กลง)
 const SCALE_STEP = 0.03; // ส่วนต่าง scale ของแต่ละชั้น
-
-// ขนาดการ์ด/คอนเทนเนอร์
-const CARD_WIDTH = "w-[92%]";
-const CARD_HEIGHT = "h-[500px]";
-const CONTAINER_HEIGHT = "h-[560px]";
-
+const CONTAINER_HEIGHT = "h-[600px]";
 const SWIPE_THRESHOLD = 120;
 
 export default function BusinessMatcher() {
@@ -110,11 +105,11 @@ export default function BusinessMatcher() {
   };
 
   return (
-    <div className="w-full flex items-center justify-center bg-white p-4">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-white p-4">
       <div className="w-full max-w-sm mx-auto">
         {/* Container การ์ด + Dots/Buttons */}
         <div
-          className={`relative ${CONTAINER_HEIGHT} pt-6 select-none overflow-visible`}
+          className={`relative ${CONTAINER_HEIGHT} select-none overflow-visible`}
         >
           <AnimatePresence initial={false}>
             {remaining.slice(0, MAX_STACK).map((c, i) => {
@@ -172,10 +167,10 @@ export default function BusinessMatcher() {
           {/* Dots + Action Buttons: ย้ายเข้ามาใน container และปัก absolute ด้านล่าง */}
           {remaining.length > 0 && (
             <div
-              className="mt-[480px]"
-              //   style={{
-              //     bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
-              //   }}
+              className="absolute inset-x-0 z-10 pointer-events-none"
+              style={{
+                bottom: "calc(env(safe-area-inset-bottom, 0px) + 14px)",
+              }}
             >
               <div className="flex flex-col items-center gap-3">
                 <div className="pointer-events-auto">
@@ -201,8 +196,8 @@ export default function BusinessMatcher() {
               </div>
             </div>
           )}
-          <TogglePill />
         </div>
+        <TogglePill />
       </div>
 
       {/* Bottom sheet รายละเอียด */}
@@ -216,9 +211,10 @@ export default function BusinessMatcher() {
   function forceSwipe(dir: "left" | "right") {
     const top = remaining[0];
     if (!top) return;
-    const event = new CustomEvent("force-swipe", {
-      detail: { dir, id: top.id },
-    });
+    const event = new CustomEvent<{ dir: "left" | "right"; id: string }>(
+      "force-swipe",
+      { detail: { dir, id: top.id } }
+    );
     window.dispatchEvent(event);
   }
 }
@@ -261,16 +257,19 @@ function SwipeCard({
 
   // ฟัง event เฉพาะใบบนสุด + id ตรงเท่านั้น (กันกดแล้วบินทุกใบ)
   React.useEffect(() => {
-    const handler = (e: CustomEvent<{ dir: "left" | "right"; id: string }>) => {
+    const handler = (e: Event) => {
       if (!isTop) return;
-      const dir = e?.detail?.dir;
-      const targetId = e?.detail?.id;
+      const ce = e as CustomEvent<{ dir: "left" | "right"; id: string }>;
+      const dir = ce.detail?.dir;
+      const targetId = ce.detail?.id;
       if (dir && targetId === company.id) {
         animateOut(dir);
       }
     };
-    window.addEventListener("force-swipe", handler as any);
-    return () => window.removeEventListener("force-swipe", handler as any);
+    window.addEventListener("force-swipe", handler as EventListener);
+    return () =>
+      window.removeEventListener("force-swipe", handler as EventListener);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTop, company.id]);
 
   const animateOut = (dir: "left" | "right") => {
@@ -292,7 +291,7 @@ function SwipeCard({
 
   return (
     <motion.div
-      className={`absolute left-0 right-0 mx-auto w-[92%] h-[500px]`}
+      className="absolute left-0 right-0 mx-auto w-[92%] h-[500px]"
       initial={false}
       style={wrapperStyle}
       animate={wrapperAnimate}
@@ -353,11 +352,11 @@ function SwipeCard({
         {/* Tint overlays while dragging */}
         <motion.div
           className="absolute inset-0 pointer-events-none rounded-[28px] bg-emerald-500"
-          style={{ opacity: likeBgOpacity, mixBlendMode: "multiply" as any }}
+          style={{ opacity: likeBgOpacity, mixBlendMode: "multiply" }}
         />
         <motion.div
           className="absolute inset-0 pointer-events-none rounded-[28px] bg-rose-500"
-          style={{ opacity: nopeBgOpacity, mixBlendMode: "multiply" as any }}
+          style={{ opacity: nopeBgOpacity, mixBlendMode: "multiply" }}
         />
 
         {/* Like / Nope banners */}
@@ -443,7 +442,7 @@ function BottomSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 260, damping: 30 }}
-            className="absolute bottom-0 left-0 right-0 h-[80%] rounded-t-3xl bg-white shadow-2xl overflow-y-auto"
+            className="absolute bottom-0 left-0 right-0 top-1/2 rounded-t-3xl bg-white shadow-2xl overflow-y-auto"
           >
             <div className="p-4 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-lg font-semibold">{company.name}</h3>
